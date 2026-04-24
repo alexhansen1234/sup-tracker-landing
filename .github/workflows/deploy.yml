@@ -1,0 +1,68 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # No build step — static files in public/ are the artifact.
+
+      - name: Deploy to VPS
+        uses: easingthemes/ssh-deploy@main
+        with:
+          SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_KEY }}
+          REMOTE_HOST: 165.227.178.235
+          REMOTE_USER: root
+          SOURCE: public/
+          TARGET: /var/www/demos/suptracker/
+          # --no-delete: preserves files on VPS that aren't in this repo yet
+          # (e.g. legacy PWA artifacts still served alongside landing content
+          # during the sunset transition). Remove once sup-tracker-pwa archives.
+          ARGS: -rlgoDzvc --checksum
+
+      - name: Purge Cloudflare cache
+        if: ${{ env.CLOUDFLARE_API_TOKEN != '' }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          curl -sf -X POST "https://api.cloudflare.com/client/v4/zones/d588f714a379882e64051d3da92c432f/purge_cache" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data '{"purge_everything":true}' || echo "Cache purge failed (non-fatal)"
+
+      - name: Smoke test
+        run: |
+          sleep 3
+          for path in / /privacy; do
+            URL="https://suptracker.app${path}"
+            HTTP_STATUS=$(curl -sf -o /dev/null -w '%{http_code}' "$URL" || echo 000)
+            if [ "$HTTP_STATUS" != "200" ]; then
+              echo "::error::Smoke test failed — HTTP $HTTP_STATUS at $URL"
+              exit 1
+            fi
+            echo "OK: $URL"
+          done
+
+      - name: Notify Telegram
+        if: always()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          [ -z "${TELEGRAM_BOT_TOKEN:-}" ] && exit 0
+          BUILD_HASH=$(git rev-parse --short HEAD)
+          STATUS="${{ job.status }}"
+          ICON=$([ "$STATUS" = "success" ] && echo "✅" || echo "❌")
+          MSG="${ICON} *sup-tracker-landing* deploy ${STATUS}
+          Build: \`${BUILD_HASH}\`
+          [Run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d chat_id="$TELEGRAM_CHAT_ID" \
+            -d text="$MSG" \
+            -d parse_mode="Markdown" > /dev/null 2>&1 || true

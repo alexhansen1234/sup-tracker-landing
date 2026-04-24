@@ -1,0 +1,15 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "4C9UXE42SX.dev.forgedsystems.suptracker",
+        "paths": [
+          "/auth/callback",
+          "/auth/callback?*",
+          "/p/*"
+        ]
+      }
+    ]
+  }
+}

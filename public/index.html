@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SupTracker — supplement tracking, done right</title>
+  <meta name="description" content="SupTracker is a supplement tracking app for iOS and Android. Track stacks, inventory, and adherence." />
+  <link rel="icon" type="image/png" href="/icon.png" />
+  <link rel="apple-touch-icon" href="/icon.png" />
+  <meta property="og:title" content="SupTracker" />
+  <meta property="og:description" content="Supplement tracking, done right. Join the beta." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://suptracker.app" />
+  <meta property="og:image" content="https://suptracker.app/icon.png" />
+  <link rel="canonical" href="https://suptracker.app" />
+  <style>
+    :root {
+      --bg: #0b1220;
+      --bg-2: #111a2e;
+      --fg: #eef2ff;
+      --muted: #94a3b8;
+      --accent: #3b82f6;
+      --accent-2: #60a5fa;
+      --border: rgba(255,255,255,0.08);
+      --card: rgba(255,255,255,0.04);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    #shader-bg {
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      pointer-events: none;
+    }
+    #shader-bg canvas { display: block; width: 100%; height: 100%; }
+    #shader-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse 60% 50% at 50% 45%, rgba(11,18,32,0.65) 0%, rgba(11,18,32,0.35) 40%, rgba(11,18,32,0.15) 70%, rgba(11,18,32,0) 100%),
+        linear-gradient(180deg, rgba(11,18,32,0.35) 0%, rgba(11,18,32,0.1) 30%, rgba(11,18,32,0.1) 70%, rgba(11,18,32,0.55) 100%);
+    }
+    main {
+      flex: 1;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 64px 24px 32px;
+      text-align: center;
+    }
+    .mark {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      margin-bottom: 40px;
+      font-size: 18px;
+    }
+    .mark img {
+      width: 40px;
+      height: 40px;
+      border-radius: 9px;
+      display: block;
+    }
+    h1 {
+      font-size: clamp(40px, 7vw, 64px);
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      margin: 0 0 16px;
+    }
+    .lede {
+      font-size: clamp(17px, 2vw, 20px);
+      color: var(--muted);
+      margin: 0 auto 40px;
+      max-width: 540px;
+    }
+    .beta-badge {
+      display: inline-block;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent-2);
+      background: rgba(59,130,246,0.12);
+      border: 1px solid rgba(59,130,246,0.35);
+      padding: 6px 12px;
+      border-radius: 999px;
+      margin-bottom: 24px;
+    }
+    .cta-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      max-width: 380px;
+      margin: 0 auto 32px;
+    }
+    @media (min-width: 520px) {
+      .cta-row { grid-template-columns: 1fr 1fr; max-width: 560px; }
+    }
+    .cta {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 16px 20px;
+      border-radius: 14px;
+      font-weight: 600;
+      font-size: 16px;
+      text-decoration: none;
+      color: var(--fg);
+      background: var(--card);
+      border: 1px solid var(--border);
+      transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+    }
+    .cta:hover {
+      transform: translateY(-1px);
+      background: rgba(255,255,255,0.07);
+      border-color: rgba(255,255,255,0.18);
+    }
+    .cta.primary {
+      background: linear-gradient(180deg, var(--accent) 0%, #2563eb 100%);
+      border-color: transparent;
+    }
+    .cta.primary:hover {
+      background: linear-gradient(180deg, var(--accent-2) 0%, var(--accent) 100%);
+    }
+    .cta svg { width: 20px; height: 20px; flex-shrink: 0; }
+    .note {
+      color: var(--muted);
+      font-size: 14px;
+      margin: 0 auto 48px;
+      max-width: 480px;
+    }
+    .note a { color: var(--accent-2); text-decoration: none; }
+    .note a:hover { text-decoration: underline; }
+    footer {
+      text-align: center;
+      padding: 24px;
+      color: var(--muted);
+      font-size: 13px;
+      border-top: 1px solid var(--border);
+    }
+    footer a { color: var(--muted); text-decoration: none; margin: 0 8px; }
+    footer a:hover { color: var(--fg); }
+  </style>
+</head>
+<body>
+  <div id="shader-bg"></div>
+  <div id="shader-overlay"></div>
+  <main>
+    <div class="mark">
+      <img src="/icon.png" alt="" aria-hidden="true" />
+      <span>SupTracker</span>
+    </div>
+
+    <h1>Supplement tracking, done right.</h1>
+    <p class="lede">Track stacks, inventory, and adherence — on iOS and Android. Join the beta.</p>
+
+    <div class="beta-badge">Public beta</div>
+
+    <div class="cta-row">
+      <a class="cta primary" href="https://testflight.apple.com/join/B6ZJw7PP" target="_blank" rel="noopener">
+        <svg viewBox="0 0 384 512" fill="currentColor" aria-hidden="true"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zM256.3 100.6c28.7-33.9 26.1-64.8 25.3-76-25.6 1.5-55.3 17.5-72 37.3-19.1 21.6-30.6 48.8-28.1 75.5 27.6 2 52.8-12 74.8-36.8z"/></svg>
+        Join iOS beta
+      </a>
+      <a class="cta primary" href="https://appdistribution.firebase.dev/i/07f87d0f84238ee1" target="_blank" rel="noopener">
+        <svg viewBox="0 0 576 512" fill="currentColor" aria-hidden="true"><path d="M420.55,301.93a24,24,0,1,1,24-24,24,24,0,0,1-24,24m-265.1,0a24,24,0,1,1,24-24,24,24,0,0,1-24,24m273.7-144.48,47.94-83a10,10,0,1,0-17.27-10h0l-48.54,84.07a301.25,301.25,0,0,0-246.56,0L116.18,64.45a10,10,0,1,0-17.27,10h0l47.94,83C64.53,202.22,8.24,285.55,0,384H576c-8.24-98.45-64.54-181.78-146.85-226.55"/></svg>
+        Join Android beta
+      </a>
+    </div>
+
+    <p class="note">Having trouble? <a href="mailto:alex@forgedsystems.dev?subject=SupTracker%20beta%20help">Email us</a>.</p>
+  </main>
+
+  <footer>
+    <a href="/privacy.html">Privacy</a>
+    <span>·</span>
+    <a href="mailto:alex@forgedsystems.dev">Contact</a>
+    <div style="margin-top: 8px; opacity: 0.6;">© 2026 Forged Systems</div>
+  </footer>
+
+  <script>
+  (function(){
+    var container = document.getElementById('shader-bg');
+    if (!container) return;
+    var canvas = document.createElement('canvas');
+    container.appendChild(canvas);
+    var gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    if (!gl) return;
+
+    function resize(){
+      var dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.max(1, Math.floor(canvas.clientWidth * dpr));
+      canvas.height = Math.max(1, Math.floor(canvas.clientHeight * dpr));
+      gl.viewport(0,0,canvas.width,canvas.height);
+    }
+    resize();
+    window.addEventListener('resize', resize, { passive: true });
+
+    var vsSource = 'attribute vec2 a_position; void main(){gl_Position=vec4(a_position,0.,1.);}';
+
+    // Solar Flare — warm nebula, reds/golds, dramatic contrast
+    var fsSource = [
+      'precision mediump float;',
+      'uniform float u_time;',
+      'uniform vec2 u_resolution;',
+      'mat2 rot(float a){float c=cos(a),s=sin(a);return mat2(c,-s,s,c);}',
+      'float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}',
+      'float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}',
+      'float fbm(vec2 p){float r=0.0,a=0.5;for(int i=0;i<6;i++){r+=a*noise(p);p=rot(0.35)*p*2.2+vec2(80.0);a*=0.48;}return r;}',
+      'vec3 palette(float t){return vec3(0.5)+vec3(0.5)*cos(6.283*(vec3(1.0)*t+vec3(0.0,0.15,0.4)));}',
+      'void main(){',
+      '  vec2 uv=gl_FragCoord.xy/u_resolution.xy;',
+      '  uv.x*=u_resolution.x/u_resolution.y;',
+      '  float t=u_time*0.035;',
+      '  vec2 p=uv*3.5;',
+      '  float n1=fbm(p+t*1.1);',
+      '  float n2=fbm(p+n1*2.0+t*0.8+vec2(4.7,2.1));',
+      '  float n3=fbm(p+n2*2.0+t*0.4+vec2(2.3,8.5));',
+      '  vec3 col=palette(n3*0.7+t*0.12);',
+      '  col*=0.5+0.7*n3;',
+      '  col+=vec3(1.0,0.4,0.05)*pow(max(n2-0.25,0.0),2.5)*3.0;',
+      '  col+=vec3(0.8,0.2,0.0)*pow(max(n1-0.4,0.0),3.0)*2.0;',
+      '  col=pow(col,vec3(0.8));',
+      '  float vig=1.0-0.45*pow(length(uv-vec2(u_resolution.x/u_resolution.y*0.5,0.5)),2.0);',
+      '  col*=vig;',
+      '  gl_FragColor=vec4(col,1.0);',
+      '}'
+    ].join('\n');
+
+    function compile(type, src){
+      var s = gl.createShader(type);
+      gl.shaderSource(s, src);
+      gl.compileShader(s);
+      if(!gl.getShaderParameter(s, gl.COMPILE_STATUS)){
+        console.error('shader compile', gl.getShaderInfoLog(s));
+        return null;
+      }
+      return s;
+    }
+
+    var vs = compile(gl.VERTEX_SHADER, vsSource);
+    var fs = compile(gl.FRAGMENT_SHADER, fsSource);
+    if(!vs || !fs) return;
+
+    var prog = gl.createProgram();
+    gl.attachShader(prog, vs);
+    gl.attachShader(prog, fs);
+    gl.linkProgram(prog);
+    if(!gl.getProgramParameter(prog, gl.LINK_STATUS)){
+      console.error('link', gl.getProgramInfoLog(prog));
+      return;
+    }
+
+    var posLoc = gl.getAttribLocation(prog, 'a_position');
+    var timeLoc = gl.getUniformLocation(prog, 'u_time');
+    var resLoc = gl.getUniformLocation(prog, 'u_resolution');
+
+    var buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+
+    var frameInterval = 1000/30, last = 0;
+    var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function render(now){
+      requestAnimationFrame(render);
+      if (now - last < frameInterval) return;
+      last = now;
+      gl.useProgram(prog);
+      gl.enableVertexAttribArray(posLoc);
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+      gl.uniform1f(timeLoc, reduced ? 0.0 : now * 0.001);
+      gl.uniform2f(resLoc, canvas.width, canvas.height);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    }
+    requestAnimationFrame(render);
+  })();
+  </script>
+</body>
+</html>
